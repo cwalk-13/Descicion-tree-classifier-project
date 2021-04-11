@@ -1,4 +1,14 @@
+"""
+Charles Walker 
+CPSC 322
+Section 02
+PA5
+"""
 import mysklearn.myutils as myutils
+import numpy as np
+import copy
+import operator
+import random
 
 class MySimpleLinearRegressor:
     """Represents a simple linear regressor.
@@ -33,6 +43,18 @@ class MySimpleLinearRegressor:
             y_train(list of numeric vals): The target y values (parallel to X_train) 
                 The shape of y_train is n_train_samples
         """
+        x = []
+        for sample in X_train:
+            x.append(sample[0])
+
+        y = y_train
+        mean_x = np.mean(x)
+        mean_y = np.mean(y)
+        
+        m = sum([(x[i] - mean_x) * (y[i] - mean_y) for i in range(len(x))]) / sum([(x[i] - mean_x) ** 2 for i in range(len(x))])
+        b = mean_y - m * mean_x 
+        self.intercept = b
+        self.slope = m 
         pass # TODO: copy your solution from PA4 here
 
     def predict(self, X_test):
@@ -47,7 +69,15 @@ class MySimpleLinearRegressor:
         Returns:
             y_predicted(list of numeric vals): The predicted target y values (parallel to X_test)
         """
-        return [] # TODO: copy your solution from PA4 here
+        x = []
+        for sample in X_test:
+            x.append(sample[0])
+        
+        y = []
+        for i in range(len(x)):
+            y_val = round((self.slope * x[i]) + self.intercept, 5)
+            y.append(y_val)
+        return y # TODO: copy your solution from PA4 here
 
 
 class MyKNeighborsClassifier:
@@ -103,7 +133,38 @@ class MyKNeighborsClassifier:
             neighbor_indices(list of list of int): 2D list of k nearest neighbor
                 indices in X_train (parallel to distances)
         """
-        return [], [] # TODO: copy your solution from PA4 here
+        #enumerate returns pairs, first element is index second element is elememnt
+        #from knn example in CLassificationFun
+        train = copy.deepcopy(self.X_train)
+        k = self.n_neighbors
+
+        all_distances = []
+        all_neighbor_indices = []
+        for test in X_test:
+            for i, instance in enumerate(train):
+                # append the class label
+                instance.append(self.y_train[i])
+                # append the original row index
+                instance.append(i)
+                # append the distance to [2, 3]
+                dist = myutils.compute_euclidean_distance(instance[:2], test)
+                instance.append(dist)
+            
+            # sort train by distance
+            train_sorted = sorted(train, key=operator.itemgetter(-1))
+
+            # grab the top k
+            top_k = train_sorted[:k]
+            dists = []
+            indices = []
+            for instance in top_k:
+                dists.append(instance[-1])
+                indices.append(instance[-2])
+            all_distances.append(dists)
+            all_neighbor_indices.append(indices)
+        
+        return all_distances, all_neighbor_indices # TODO: fix this
+
 
     def predict(self, X_test):
         """Makes predictions for test instances in X_test.
@@ -115,7 +176,20 @@ class MyKNeighborsClassifier:
         Returns:
             y_predicted(list of obj): The predicted target y values (parallel to X_test)
         """
-        return [] # TODO: copy your solution from PA4 here
+        dists, all_indices = self.kneighbors(X_test)
+
+        predicted_y_vals = []
+        for indices in all_indices:
+            y_vals = []
+            for index in indices:
+                y_vals.append(self.y_train[index])
+            values, counts = myutils.get_freq_1col(y_vals)
+
+            index_avg, avg = max(enumerate(counts), key=operator.itemgetter(1))
+            
+            predicted_y_vals.append(values[index_avg])
+        
+        return predicted_y_vals # TODO: fix this
 
 class MyNaiveBayesClassifier:
     """Represents a Naive Bayes classifier.
@@ -157,8 +231,84 @@ class MyNaiveBayesClassifier:
                 and the posterior probabilities for the training data.
             You are free to choose the most appropriate data structures for storing the priors
                 and posteriors.
+
+        
+        Priors
+            1. Probability of C (label)
+                P(C) = Total/NumOfInsancesOfC
+                ex: #C/Total
+            2. Probability of X, (instance/row)
+        Posteriors
+            1. Probability of row given class label
+                use independence assumption
+                P(X|C) = P(V1 and C) * P(V2 and C) *...etc
+                    P(V|C) = (#C&V/TotalLenTable)/P(C)
+                    **only for categorical
+            2. Probability of class label given row
+                P(C|X) = P(X|C)*P(C)
+
+        
         """
-        pass # TODO: copy your solution from PA5 here
+
+        #priors
+
+        #get each class
+        self.priors = []
+        self.posteriors = []
+        if isinstance(y_train[0], int):
+            c_list, counts = myutils.get_freq_1col(y_train)
+        else:
+            c_list, counts = myutils.get_freq_str(y_train)
+
+        #create list of priors objects, [label, probability], add to priors
+        for i in range(len(c_list)):
+            p = counts[i] / len(y_train)
+            prior = [c_list[i], p]
+            self.priors.append(prior)
+
+        #posteriors
+        
+        #calculate probability of V and C for every possible V for each col (excluding c col)
+        #loop through each col
+        for i in range(len(X_train[0])):
+            col = myutils.get_col_byindex(X_train, i)
+
+            #############check if values in col are categorical or coninuous
+            
+
+                #get a list of every possible value and their counts (get_freq)
+            val_list, counts = myutils.get_freq_str(col)
+                #create list of posterior objects, [value, probability], add to this col's posteriors list
+
+            #create list to hold all posteriors for col
+            col_posteriors = [i]
+            #loop through each C
+            for c_index in range(len(c_list)):
+                #create list to hold P(V|C)'s for this class
+                posteriors = [c_list[c_index]]
+                #loop through each V
+                for V in val_list:
+                    # create var to hold the count for number of rows that are C&V
+                    count = 0     
+                    #loop through each row
+                    for j in range(len(X_train)):
+                        #if C&V then count++
+                        if str(X_train[j][i]) == str(V) and str(y_train[j]) == str(c_list[c_index]):
+                            count += 1
+    
+                    # calc P(V|C) = count/Total#Rows
+                    p = count/len(y_train)
+
+                    p = p/self.priors[c_index][1]
+
+                    # make [V_name, P] obj
+                    posterior = [V, p]
+                    #append obj to list of P(V|C)'s for this class
+                    posteriors.append(posterior)
+                col_posteriors.append(posteriors)
+            #append col_posteriors, [col_index, [class_label, [val_name, P] ] ], to self.posteriors
+            self.posteriors.append(col_posteriors)
+        pass # TODO: fix this
 
     def predict(self, X_test):
         """Makes predictions for test instances in X_test.
@@ -169,8 +319,105 @@ class MyNaiveBayesClassifier:
 
         Returns:
             y_predicted(list of obj): The predicted target y values (parallel to X_test)
+        
+        Predict
+            given X, find C such that P(C|X) is greatest
+            1. Calculate all P(Ci|X)
+            2. compare them
         """
-        return [] # TODO: copy your solution from PA5 here
+        #calc P(X|C) by multiplying every corresponding posterior for each col val
+
+        c_list = myutils.get_col_byindex(self.priors, 0)
+        y_predicted = []
+        #loop through x_test rows
+        for row in X_test:
+            # each x_test is a row with specific values. Compute the total prob for each possible class label
+            #all_p_cx = [] : list to hold all P(C|X) to compare
+            all_p_cx = []
+            #loop through each class label
+            for c_list_index in range(len(c_list)):
+                #p_cx: this is P(C|X)
+                p_cx = 0 
+                #loop through each val in the row
+                for curr_val_index in range(len(row)):
+                    ##find the posterior for that val in that col
+                    #loop through self.posteriors
+                    post_found = False
+                    for posteriors in self.posteriors:
+                        if post_found == True:
+                            break
+                        #if curr_col_index == self.posteriors[curr_index:A][0]
+                        if curr_val_index == posteriors[0]:
+                            post_found = True   
+                            #loop through self.posteriors[A]
+                            for i in range(len(posteriors)):
+                                if i == 0:
+                                    continue
+                                #if posterior.class == curr class label C
+                                if str(posteriors[i][0]) == str(c_list[c_list_index]):
+                                    #loop through the list with that C
+                                    for j in range(len(posteriors[i])):
+                                        #if posterior.val == given attr Val
+                                        if j == 0:
+                                            continue
+                                        if str(posteriors[i][j][0]) == str(row[curr_val_index]):
+                                            p = posteriors[i][j][1]
+                                            if p_cx == 0:
+                                                p_cx = 1
+                                            p_cx = p_cx*p
+                                            break
+                p_cx = p_cx*self.priors[c_list_index][1]
+                #append p_cx to all_p_cx
+                all_p_cx.append(p_cx)
+            #compare each p_cx from that list and find the index of max
+            best_p_index = all_p_cx.index(max(all_p_cx))         
+            #append the class label with corresponding index to y_predicted
+            y_predicted.append(c_list[best_p_index])
+        return y_predicted
+
+class MyZeroClassifier:
+    def __init__(self):
+        """Initializer for MyZeroClassifier.
+            only takes y_train
+            Zero-R: classifies an instance using "zero rules"... 
+            it always predicts the most common class label in the training set. 
+            For example, if 99% of the dataset is positive instances, it always predicts positive.
+        """
+        self.y_train = None
+
+    def fit(self, y_train):
+        self.y_train = y_train
+        pass
+    
+    def predict(self):
+        vals, counts = myutils.get_freq_str(self.y_train)
+        i = counts.index(max(counts)) 
+        y_predict = vals[i] 
+        return y_predict
+
+class MyRandomClassifier:
+    def __init__(self):
+        """Initializer for MyRandomClassifier.
+            Random classifier: classifies an instance by randomly choosing a class label 
+            (class label probabilities of being chosen are weighted based on their frequency in the training set).
+        """
+        
+        self.y_train = None
+
+    def fit(self, y_train):
+        self.y_train = y_train
+        pass
+
+    def predict(self): 
+        vals, counts = myutils.get_freq_str(self.y_train)
+        p_list = []
+        for count in counts:
+            curr_p = count/len(self.y_train)
+            p_list.append(curr_p)
+
+        pred = np.random.choice(vals, p= p_list)
+
+        return pred
 
 class MyDecisionTreeClassifier:
     """Represents a decision tree classifier.
