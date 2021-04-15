@@ -279,7 +279,106 @@ def test_naive_bayes_classifier_predict():
     assert pred3 == ["cancelled"]
 
 def test_decision_tree_classifier_fit():
-    assert False == True # TODO: fix this
+    X_train = [
+        ["Senior", "Java", "no", "no"],
+        ["Senior", "Java", "no", "yes"],
+        ["Mid", "Python", "no", "no"],
+        ["Junior", "Python", "no", "no"],
+        ["Junior", "R", "yes", "no"],
+        ["Junior", "R", "yes", "yes"],
+        ["Mid", "R", "yes", "yes"],
+        ["Senior", "Python", "no", "no"],
+        ["Senior", "R", "yes", "no"],
+        ["Junior", "Python", "yes", "no"],
+        ["Senior", "Python", "yes", "yes"],
+        ["Mid", "Python", "no", "yes"],
+        ["Mid", "Java", "yes", "no"],
+        ["Junior", "Python", "no", "yes"]
+    ]
 
+    y_train = ["False", "False", "True", "True", "True", "False", "True", "False", "True", "True", "True", "True", "True", "False"]
+    tree = MyDecisionTreeClassifier()
+    tree.fit(X_train, y_train)
+    interview_tree = \
+    ["Attribute", "attr0", 
+        ["Value", "Senior", 
+            ["Attribute", "attr2",
+                ["Value", "no", 
+                    ["Leaf", "False", 3, 5]
+                ],
+                ["Value", "yes", 
+                    ["Leaf", "True", 2, 5]
+                ]
+            ]
+        ],
+        ["Value", "Mid", 
+            ["Leaf", "True", 4, 15]
+        ],
+        ["Value", "Junior", 
+            ["Attribute", "attr3", 
+                ["Value", "no", 
+                    ["Leaf", "True", 3, 5]
+                ],
+                ["Value", "yes", 
+                    ["Leaf", "False", 2, 5]
+                ]
+            ]
+        ]
+    ]
+    assert tree.tree == interview_tree
+
+    # degrees_header = ["SoftEng", "ARIN", "HCI", "CSA", "Project", "Class"]
+    # degrees_table = [
+    #     ["A", "B", "A", "B", "B", "SECOND"],
+    #     ["A", "B", "B", "B", "A", "FIRST"],
+    #     ["A", "A", "A", "B", "B", "SECOND"],
+    #     ["B", "A", "A", "B", "B", "SECOND"],
+    #     ["A", "A", "B", "B", "A", "FIRST"],
+    #     ["B", "A", "A", "B", "B", "SECOND"],
+    #     ["A", "B", "B", "B", "B", "SECOND"],
+    #     ["A", "B", "B", "B", "B", "SECOND"],
+    #     ["A", "A", "A", "A", "A", "FIRST"],
+    #     ["B", "A", "A", "B", "B", "SECOND"],
+    #     ["B", "A", "A", "B", "B", "SECOND"],
+    #     ["A", "B", "B", "A", "B", "SECOND"],
+    #     ["B", "B", "B", "B", "A", "SECOND"],
+    #     ["A", "A", "B", "A", "B", "FIRST"],
+    #     ["B", "B", "B", "B", "A", "SECOND"],
+    #     ["A", "A", "B", "B", "B", "SECOND"],
+    #     ["B", "B", "B", "B", "B", "SECOND"],
+    #     ["A", "A", "B", "A", "A", "FIRST"],
+    #     ["B", "B", "B", "A", "A", "SECOND"],
+    #     ["B", "B", "A", "A", "B", "SECOND"],
+    #     ["B", "B", "B", "B", "A", "SECOND"],
+    #     ["B", "A", "B", "A", "B", "SECOND"],
+    #     ["A", "B", "B", "B", "A", "FIRST"],
+    #     ["A", "B", "A", "B", "B", "SECOND"],
+    #     ["B", "A", "B", "B", "B", "SECOND"],
+    #     ["A", "B", "B", "B", "B", "SECOND"],
+    # ]
+    # tree2 = MyDecisionTreeClassifier()
+    # tree2.fit(X_train, y_train)
 def test_decision_tree_classifier_predict():
-    assert False == True # TODO: fix this
+    X_train = [
+        ["Senior", "Java", "no", "no"],
+        ["Senior", "Java", "no", "yes"],
+        ["Mid", "Python", "no", "no"],
+        ["Junior", "Python", "no", "no"],
+        ["Junior", "R", "yes", "no"],
+        ["Junior", "R", "yes", "yes"],
+        ["Mid", "R", "yes", "yes"],
+        ["Senior", "Python", "no", "no"],
+        ["Senior", "R", "yes", "no"],
+        ["Junior", "Python", "yes", "no"],
+        ["Senior", "Python", "yes", "yes"],
+        ["Mid", "Python", "no", "yes"],
+        ["Mid", "Java", "yes", "no"],
+        ["Junior", "Python", "no", "yes"]
+    ]
+
+    y_train = ["False", "False", "True", "True", "True", "False", "True", "False", "True", "True", "True", "True", "True", "False"]
+    tree = MyDecisionTreeClassifier()
+    tree.fit(X_train, y_train)
+    X_test = [["Senior", "Java", "no", "no"], ["Senior", "Java", "no", "yes"], ["Senior", "Java", "yes", "no"]]
+    pred = tree.predict(X_test)
+    assert  pred == ["False", "False", "True"] # TODO: fix this

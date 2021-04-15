@@ -457,6 +457,19 @@ class MyDecisionTreeClassifier:
             Store the tree in the tree attribute.
             Use attribute indexes to construct default attribute names (e.g. "att0", "att1", ...).
         """
+        self.X_train = X_train
+        self.y_train = y_train
+        # compute a "header" ["att0", "att1", ...]
+        header = myutils.build_header(X_train)
+        # compute the attribute domains dictionary
+        attr_domains = myutils.get_attr_domains(X_train, header)
+        # my advice is to stitch together X_train and y_train
+        train = [X_train[i] + [y_train[i]] for i in range(len(X_train))]
+        # initial call to tdidt current instances is the whole table (train)
+        available_attributes = header.copy() # python is pass object reference
+
+        self.tree = myutils.tdidt(train, available_attributes, attr_domains, header)
+        # print("tree:", self.tree)
         pass # TODO: fix this
         
     def predict(self, X_test):
@@ -469,7 +482,17 @@ class MyDecisionTreeClassifier:
         Returns:
             y_predicted(list of obj): The predicted target y values (parallel to X_test)
         """
-        return [] # TODO: fix this
+        # APIServiceFun interview_app.py
+        #lecture 4/8
+        y_predicted = []
+        header = myutils.build_header(self.X_train)
+    
+        for instance in X_test:
+            y_predicted.append(myutils.tdidt_predict(header, self.tree, instance))
+        
+        # print(y_predicted)
+
+        return y_predicted # TODO: fix this
 
     def print_decision_rules(self, attribute_names=None, class_name="class"):
         """Prints the decision rules from the tree in the format "IF att == val AND ... THEN class = label", one rule on each line.

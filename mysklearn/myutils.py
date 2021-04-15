@@ -252,28 +252,6 @@ def get_rand_rows(table, num_rows):
         rand_rows.append(table.data[random.randint(0,len(table.data))-1])
     return rand_rows
 
-def rating(mpg):
-    if mpg < 14:
-        return 1
-    elif mpg < 15:
-        return 2
-    elif mpg < 17:
-        return 3
-    elif mpg < 20:
-        return 4
-    elif mpg < 24:
-        return 5
-    elif mpg < 27:
-        return 6
-    elif mpg < 31:
-        return 7
-    elif mpg < 37:
-        return 8
-    elif mpg < 45:
-        return 9
-    return 10
-
-
 def categorize_weight(val):
     if val < 2000:
         weight = 1
@@ -302,6 +280,27 @@ def mpg_to_rating(mpg):
     for i in range(len(mpg)):
         mpg[i] = rating(mpg[i])
     return mpg
+
+def rating(mpg):
+    if mpg < 14:
+        return 1
+    elif mpg < 15:
+        return 2
+    elif mpg < 17:
+        return 3
+    elif mpg < 20:
+        return 4
+    elif mpg < 24:
+        return 5
+    elif mpg < 27:
+        return 6
+    elif mpg < 31:
+        return 7
+    elif mpg < 37:
+        return 8
+    elif mpg < 45:
+        return 9
+    return 10
 
 def folds_to_train(x, y, train_folds, test_folds):
     X_train = []
@@ -357,7 +356,7 @@ def entropy(p_class_labels):
         E -= (p * math.log(p, 2))
     return E
 
-def select_attribute(instances, available_attributes):
+def select_attribute(instances, available_attributes, header):
     ##entropy
     #get all possible class labels
     class_col = get_col_byindex(instances, -1)
@@ -374,7 +373,6 @@ def select_attribute(instances, available_attributes):
     #loop through each attr
     
     for attr in available_attributes:
-        ##will have to get rid of this and swich available_attributes to be a list of indices
         #get the attr col
         for header_attr in header:
             if attr == header_attr:
@@ -420,11 +418,11 @@ def select_attribute(instances, available_attributes):
 
     return available_attributes[split_index]
 
-def partition_instances(instances, split_attribute):
+def partition_instances(instances, split_attribute, attr_domains, header):
     # this is a group by split_attribute's domain, not by
     # the values of this attribute in instances
     # example: if split_attribute is "level"
-    attribute_domain = attribute_domains[split_attribute] # ["Senior", "Mid", "Junior"]
+    attribute_domain = attr_domains[split_attribute] # ["Senior", "Mid", "Junior"]
     attribute_index = header.index(split_attribute) # 0
     # lets build a dictionary
     partitions = {} # key (attribute value): value (list of instances with this attribute value)
@@ -436,16 +434,16 @@ def partition_instances(instances, split_attribute):
                 partitions[attribute_value].append(instance)
     return partitions
 
-def tdidt(current_instances, available_attributes):
+def tdidt(current_instances, available_attributes, attr_domains, header):
     # select an attribute to split on
-    split_attribute = select_attribute(current_instances, available_attributes)
-    print("splitting on:", split_attribute)
+    split_attribute = select_attribute(current_instances, available_attributes, header)
+    # print("splitting on:", split_attribute)
     available_attributes.remove(split_attribute)
     new_atts = available_attributes
     tree = ["Attribute", split_attribute]
 
     # group data by attribute domains (creates pairwise disjoint partitions)
-    partitions = partition_instances(current_instances, split_attribute)
+    partitions = partition_instances(current_instances, split_attribute, attr_domains, header)
 
     #get the total num of instances in the partitions
     tot_num = 0
@@ -453,11 +451,11 @@ def tdidt(current_instances, available_attributes):
         tot_num += len(partition)
     # for each partition, repeat unless one of the following occurs (base case)
     for attribute_value, partition in partitions.items():
-        print("working with partition for:", attribute_value)
+        # print("working with partition for:", attribute_value)
         value_subtree = ["Value", attribute_value]
         #    CASE 1: all class labels of the partition are the same => make a leaf node
         if len(partition) > 0 and all_same_class(partition):
-            print("CASE 1")
+            # print("CASE 1")
             #get num_of_instances = Num in this branch with that class label (seniors with yes) = size of the partition
             num_of_instances = len(partition)
             #get the class label (the y_train val) 
@@ -466,23 +464,29 @@ def tdidt(current_instances, available_attributes):
             value_subtree.append(["Leaf", label, num_of_instances, tot_num])
         #    CASE 2: no more attributes to select (clash) => handle clash w/majority vote leaf node
         elif len(partition) > 0 and len(new_atts) == 0:
-            print("CASE 2")
-            #leaf  = ["Leaf", class label, num]
-            # label = partition[0][-1]
-            # value_subtree.append(["Leaf", label, ])
+            # print("CASE 2")
+            num_of_instances = len(partition)
+            stats = compute_partition_stats(partition, -1)
+            stats.sort(key=lambda x: x[1])
+            label = stats[-1][0]
+            value_subtree.append(["Leaf", label, len(partition), len(current_instances)])
+            # dont forget to fix the tot_num problem seen with Mid leaf node (should be 14)
+            tree.append(value_subtree)
+
+            # dont forget to fix the tot_num problem seen with Mid leaf node (should be 14)
+
+            
         #    CASE 3: no more instances to partition (empty partition) => backtrack and replace attribute node with majority vote leaf node
         elif len(partition) == 0:
-            print("CASE 3")
-            # #get_col_byindex
-            # col = get_col_byindex(partition, -1)
-            # #get majority class label
-            # vals, counts = get_freq_str(col)
-            # maj_index = counts.index(max(counts))
-            # num_of_instances = len(partition)
-            # tree.append(["Leaf", vals[maj_index], num_of_instances, tot_num])
+            # print("CASE 3")
+            stats = compute_partition_stats(current_instances, -1)
+            stats.sort(key=lambda x: x[1])
+            label = stats[-1][0]
+            return ["Leaf", label, len(partition), len(current_instances)]
+
 
         else: # all base cases are false... recurse!!
-            subtree = tdidt(partition, new_atts)
+            subtree = tdidt(partition, new_atts, attr_domains, header)
             #append subtree to value_subtree
             value_subtree.append(subtree)
         #after handling case append subtree to tree
@@ -508,5 +512,30 @@ def get_attr_domains(X_train, header):
         attr_domains[header[i]] = vals
     return attr_domains
 
+def tdidt_predict(header, tree, instance):
+    info_type = tree[0]
+    if info_type == "Attribute":
+        attribute_index = header.index(tree[1])
+        instance_value = instance[attribute_index]
+        # now I need to find which "edge" to follow recursively
+        for i in range(2, len(tree)):
+            value_list = tree[i]
+            if value_list[1] == instance_value:
+                # we have a match!! recurse!!
+                return tdidt_predict(header, value_list[2], instance)
+    else: # "Leaf"
+        return tree[1] # leaf class label
 
+def compute_partition_stats(instances, class_index):
+    stats = {}
+    for x in instances:
+        if x[class_index] in stats:
+            stats[x[class_index]] += 1
+        else:
+            stats[x[class_index]] = 1
 
+        stats_array = []
+        for key in stats:
+                stats_array.append([key, stats[key], len(instances)])
+        
+    return stats_array
