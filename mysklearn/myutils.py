@@ -2,7 +2,7 @@
 Charles Walker 
 CPSC 322
 Section 02
-PA5
+PA6
 """
 import math 
 import numpy as np
@@ -444,11 +444,6 @@ def tdidt(current_instances, available_attributes, attr_domains, header):
 
     # group data by attribute domains (creates pairwise disjoint partitions)
     partitions = partition_instances(current_instances, split_attribute, attr_domains, header)
-
-    #get the total num of instances in the partitions
-    tot_num = 0
-    for partition in partitions:
-        tot_num += len(partition)
     # for each partition, repeat unless one of the following occurs (base case)
     for attribute_value, partition in partitions.items():
         # print("working with partition for:", attribute_value)
@@ -456,26 +451,19 @@ def tdidt(current_instances, available_attributes, attr_domains, header):
         #    CASE 1: all class labels of the partition are the same => make a leaf node
         if len(partition) > 0 and all_same_class(partition):
             # print("CASE 1")
-            #get num_of_instances = Num in this branch with that class label (seniors with yes) = size of the partition
-            num_of_instances = len(partition)
             #get the class label (the y_train val) 
             label = partition[0][-1]
             #append value_subtree with ["Leaf", class label,  num_of_instances, total_num]
-            value_subtree.append(["Leaf", label, num_of_instances, tot_num])
+            value_subtree.append(["Leaf", label, len(partition), len(current_instances)])
+            tree.append(value_subtree)
         #    CASE 2: no more attributes to select (clash) => handle clash w/majority vote leaf node
         elif len(partition) > 0 and len(new_atts) == 0:
             # print("CASE 2")
-            num_of_instances = len(partition)
             stats = compute_partition_stats(partition, -1)
             stats.sort(key=lambda x: x[1])
             label = stats[-1][0]
             value_subtree.append(["Leaf", label, len(partition), len(current_instances)])
-            # dont forget to fix the tot_num problem seen with Mid leaf node (should be 14)
             tree.append(value_subtree)
-
-            # dont forget to fix the tot_num problem seen with Mid leaf node (should be 14)
-
-            
         #    CASE 3: no more instances to partition (empty partition) => backtrack and replace attribute node with majority vote leaf node
         elif len(partition) == 0:
             # print("CASE 3")
@@ -489,8 +477,8 @@ def tdidt(current_instances, available_attributes, attr_domains, header):
             subtree = tdidt(partition, new_atts, attr_domains, header)
             #append subtree to value_subtree
             value_subtree.append(subtree)
-        #after handling case append subtree to tree
-        tree.append(value_subtree)
+            #after handling case append subtree to tree
+            tree.append(value_subtree)
     
     return tree
 

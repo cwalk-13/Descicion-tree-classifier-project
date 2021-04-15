@@ -4,7 +4,7 @@ import mysklearn.myutils as myutils
 Charles Walker 
 CPSC 322
 Section 02
-PA5
+PA6
 """
 
 import copy
