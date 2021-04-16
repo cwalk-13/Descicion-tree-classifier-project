@@ -503,8 +503,6 @@ class MyDecisionTreeClassifier:
             class_name(str): A string to use for the class name in the decision rules
                 ("class" if a string is not provided and the default name "class" should be used).
         """
-        if attribute_names == None:
-            attribute_names = myutils.build_header(self.X_train)
 
         #traverse the tree
             #save first attr name from [Attribute, attr_name, ...]
